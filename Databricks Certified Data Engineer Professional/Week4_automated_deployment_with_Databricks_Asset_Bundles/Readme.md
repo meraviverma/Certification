@@ -632,4 +632,354 @@ By combining **lookup variables** and **environment overrides**, you can:
 - Organize YAML configurations for scalable project management.
 - Deploy to multiple environments with different configurations and data sets
 
+That’s a solid breakdown of how Databricks Asset Bundles (DABs) leverage templates. Let me add a bit of nuance that can help when you’re actually setting these up in practice:
 
+# DAB Project Templates Overview
+
+### 🚀 Default Templates
+- **Quick start advantage**: They’re great for prototyping or when you want to align with Databricks’ recommended structures.  
+- **Interactive vs. automatic init**: Running `databricks bundle init <template_name>` outside a notebook gives you flexibility (prompts for variables, folder names, etc.), while inside a notebook it skips prompts and scaffolds everything directly.  
+- **Best use cases**:
+  - `default-python`: ETL pipelines, data engineering scripts.
+  - `default-sql`: Analytics dashboards, reporting queries.
+  - `dbt-sql`: When you want dbt’s transformation logic tightly integrated.
+  - `mlops-stacks`: End-to-end ML lifecycle (training, deployment, monitoring).
+
+### 🛠️ Custom Templates
+- **Minimum requirements**:
+  - `databricks_template_schema.json`: Defines the schema for prompts and variables.
+  - `databricks.yml.tmpl`: Acts as the blueprint for the generated bundle.  
+- **Customization options**:
+  - Add **user prompts** (e.g., “Enter environment name”) to enforce consistency.
+  - Define **folder structures** (e.g., `src/`, `tests/`, `resources/`) so every project starts standardized.
+  - Bake in **(Infrastructure As Code) IaC patterns** (permissions, artifacts, sync rules) so teams don’t reinvent them.  
+- **Initialization**: `databricks bundle init /projects/templates/test-template` (local path) or remote URL if you host templates centrally.
+
+### ⚖️ When to Choose Which
+| Scenario | Best Option |
+|----------|-------------|
+| Rapid prototyping | Default templates |
+| Enterprise-wide consistency | Custom templates |
+| Complex ML lifecycle | `mlops-stacks` default |
+| dbt-centric workflows | `dbt-sql` default |
+| Custom governance/security needs | Custom templates |
+
+
+# CI/CD Project Overview with DABs
+
+## Planning a Databricks Project for CI/CD with Asset Bundles (DABs)
+
+When planning a Databricks project for a CI/CD workflow using **Databricks Asset Bundles (DABs)**, you need to clearly define three core components: your deliverables, the necessary tasks, and the specific Databricks assets required.
+
+---
+
+## 🎯 Deliverables
+Identify exactly what you are building, such as a solution to visualize health data.
+
+---
+
+## 📝 Tasks
+Outline the key steps needed to achieve this deliverable. For a typical data pipeline, this might involve:
+- Ingesting daily incremental CSV files into a **bronze table**  
+- Cleaning the data for a **silver table**  
+- Creating **gold tables** to share with your end consumers  
+
+---
+
+## ⚙️ Databricks Assets
+Determine the exact infrastructure components you need to build the project, which often include:
+- Databricks Workspace  
+- Notebooks  
+- Delta Live Tables (or Lakeflow Declarative Pipelines)  
+- Workflows  
+- Compute resources  
+
+---
+
+## 🏗️ Environment Architecture and Data Isolation
+Building on our previous discussions about environment isolation, your project plan should define how data is managed across your `dev`, `stage`, and `prod` stages. You can achieve this by assigning specific catalogs to each environment:
+
+- **Dev Catalog:** Contains a small, static subset of production data for development and initial testing.  
+- **Stage Catalog:** Holds a larger subset of production data, allowing for more comprehensive testing as your code moves through the CI/CD process.  
+- **Prod Catalog:** Reserved for the live operational data you rely on for final production operations.  
+
+---
+
+## ✅ Testing and Execution Strategy
+A well-planned project must also incorporate a robust testing strategy built around the **testing pyramid**, which includes unit, integration, and system tests.
+
+### Unit Tests
+- Fast, low-cost tests for individual isolated functions (like a custom PySpark function).  
+- Commonly written using **pytest**, which automatically discovers tests and provides detailed error messages when a failure occurs.  
+
+### Integration Tests
+- Evaluate the interactions between different components, such as notebooks and data pipelines.  
+- Leverage **Lakeflow Declarative Pipeline expectations**, which are data quality constraints designed to automatically validate your data before it moves further down the pipeline.  
+
+---
+
+## 🔄 Orchestration
+Ultimately, your project workflow should be orchestrated using **Databricks Workflows (Lakeflow Jobs)** to automatically execute these tests alongside your data pipelines and final visualizations. By thoroughly validating the pipeline at each stage, you can ensure everything is functioning correctly before deploying your work to production.
+
+## 🧪 Unit Tests in the CI/CD Testing Pyramid
+
+As we discussed during your project planning, **unit tests form the essential base of the CI/CD testing pyramid**.  
+Because they evaluate individual functions or methods (such as custom PySpark functions) in strict isolation, they are fast, inexpensive to run, and highly automated, giving you the broadest coverage across your codebase.
+
+---
+
+## ⚡ Why Pytest?
+**Pytest** is a highly popular Python testing framework designed to make writing these foundational unit tests both simple and scalable.  
+It is an excellent choice for automated data pipelines due to several key advantages:
+
+- **Simple Syntax:** No complex boilerplate or setup. Just write your test functions with the **`test_` prefix**.  
+- **Automatic Discovery:** Pytest automatically locates and runs all tests using the `test_` naming convention for files and functions.  
+- **Detailed Assertions:** Uses Python’s standard **`assert` statements** (and PySpark-specific assertions) to generate detailed error messages when a test fails, accelerating debugging.  
+- **Rich Ecosystem:** Easily extendable with plugins for **parallel test execution, code coverage reporting, and integration with other tools**.  
+
+---
+
+## 📂 Integration into Databricks Asset Bundles (DABs)
+When integrated into your **Databricks Asset Bundles (DABs)** project structure:
+- Pytest scripts are typically placed in the dedicated **`tests/` folder**.  
+- Databricks Workflows (such as **Lakeflow Jobs**) can be configured to automatically execute these unit tests during the **build** and **staging** phases of your CI/CD journey.  
+
+This ensures that your foundational code logic is thoroughly validated and healthy before moving on to slower, more complex **integration** and **system tests**.
+
+# 🔄 CI/CD with Databricks Asset Bundles (DABs)
+
+**Continuous Integration (CI)** and **Continuous Delivery/Deployment (CD)** represent the core workflow of securely and reliably moving code from development into production.  
+- **CI** focuses on automating code integration, building, testing, and version control.  
+- **CD** ensures that your code is always in a deployable state by automating deployments to staging and production environments.  
+
+---
+
+## ⚙️ Role of Databricks Asset Bundles (DABs)
+**Databricks Asset Bundles (DABs)** vastly simplify this CI/CD process by providing an **infrastructure-as-code** approach to managing your Databricks resources.  
+By leveraging the Databricks CLI, DABs allow data teams to define, version, and deploy assets (such as Notebooks, Delta Live Tables, Workflows, and Compute configurations) in a highly structured and repeatable way.  
+
+---
+
+## 🚀 Automated Deployment Across Environments
+The core idea behind DABs is to automate the deployment process as your code moves through isolated environments:
+
+- **Development:**  
+  Work against a dev catalog containing a small, static subset of data.  
+  Deploy updates using:  
+  ```bash
+  databricks bundle deploy -t development
+
+- **Staging:**  
+  Deploy to staging with:  
+  ```bash
+  databricks bundle deploy -t stage
+  ```  
+  The staging catalog typically holds a larger subset of production data for comprehensive testing.
+
+- **Production:**  
+  After validations pass, deploy to production with:  
+  ```bash
+  databricks bundle deploy -t production
+  ```  
+  This executes against live operational data.
+
+---
+
+## 🧪 The CI/CD Testing Pyramid
+A reliable CI/CD pipeline relies heavily on the **testing pyramid** to validate code before it reaches production.  
+Your Databricks workflows should be configured to execute these tests as the bundle progresses:
+
+- **Unit Tests:**  
+  - Fast, inexpensive foundation of the pyramid.  
+  - Evaluate individual functions (like custom PySpark logic) in strict isolation.  
+  - **Pytest** is recommended for its minimal syntax, automatic discovery, and detailed `assert` error messages.  
+
+- **Integration Tests:**  
+  - Validate interactions between components (Notebooks, Lakeflow Jobs, Declarative Pipelines).  
+  - Use **Pipeline Expectations** (data quality constraints) to automatically validate data (e.g., row counts, distinct values) as it flows through ETL pipelines.  
+
+- **System Tests:**  
+  - Slower, comprehensive tests executed in real-world scenarios.  
+  - Run the entire end-to-end pipeline within a Databricks Workflow to ensure all components function flawlessly together.  
+
+---
+
+## 🌟 Benefits
+By leveraging **DABs** alongside a strong CI/CD testing strategy, data teams can:
+- Adopt proven software engineering best practices  
+- Improve team collaboration  
+- Seamlessly manage projects across **development, staging, and production environments**
+
+# Demo: Continuous Integration and Continuous Deployment with DABs
+
+We’ll cover the organization of source code, tests, and configurations, as well as the validation, deployment, and execution of workflows across development, staging, and production environments.
+
+- Organize your Databricks asset bundle, understanding the folder structure that includes directories for tests, source code, and resources.
+
+- Integrate testing into your CI/CD pipeline, with a focus on unit and integration tests for validating code and workflows.
+
+- Configure and manage deployment variables using YAML files, tailored for different environments like development, staging, and production.
+
+- Use the Databricks CLI to deploy and execute asset bundles across multiple environments.
+
+- Streamline the process of validating, deploying, and running Databricks asset bundles in an automated and efficient CI/CD pipeline.
+
+# Doing More with Databricks Asset Bundles
+- How to use Databricks Connect and the Databricks extension. 
+- We’ll also cover best practices for CI/CD in data engineering and explore common development patterns using GitHub Actions and third-party tools.
+
+- Understand the core components of developing locally with Visual Studio Code (VS Code).
+
+- Use Databricks Connect with VS Code for seamless integration.
+
+- Navigate and utilize the Databricks extension within VS Code.
+
+- Apply best practices for CI/CD in data engineering.
+
+- Recognize common development patterns with GitHub Actions and third-party tools.
+
+# 💻 Developing Locally with Visual Studio Code (VSCode)
+
+For developers who prefer working in an Integrated Development Environment (IDE) like **Visual Studio Code (VSCode)**, Databricks provides several tools that allow you to code and debug efficiently without needing to constantly switch back to the Databricks browser UI.  
+
+When setting up your local VSCode environment, there are three primary developer tools you can leverage:
+
+---
+
+## 1️⃣ Databricks CLI
+As we discussed previously regarding Databricks Asset Bundles (DABs), installing the **Databricks CLI** locally is highly useful for driving your development and CI/CD processes.  
+- Ideal for executing **shell scripts and lightweight command-line tasks**  
+- Supports **unified authentication** methods (OAuth and Personal Access Tokens)  
+- Provides **more interactive debugging** compared to running CLI commands with `%sh` inside a Databricks Notebook  
+
+---
+
+## 2️⃣ Databricks Connect V2
+**Databricks Connect v2** allows you to interact with Databricks from anywhere by enabling you to **run Apache Spark code remotely on a Databricks cluster directly from your local environment**.  
+- Recommended for executing remote Spark jobs and performing interactive debugging  
+- Easy setup with pip:  
+  ```bash
+  pip install databricks-connect>=13.0.28
+  ```
+  *(or matching your specific Databricks version)*  
+
+---
+
+## 3️⃣ Databricks VSCode Extension
+To tie everything together, the **Databricks VSCode Extension** can be downloaded directly from the VSCode Marketplace. It connects your IDE to Databricks compute resources in minutes.  
+
+- **Native Experience:** Write code using VSCode productivity features while managing Databricks environments.  
+- **Run on Databricks:** Run and debug Python files directly on Databricks clusters, supporting both batch workloads and interactive debugging.  
+- **DABs Integration:** Seamlessly access Databricks Asset Bundle features without leaving VSCode.  
+
+---
+
+## 🌟 Developer Workflow Benefits
+By combining these three tools:
+- You gain a **local-first development experience** with VSCode productivity features.  
+- You can **execute and debug Spark jobs remotely** on Databricks clusters.  
+- You ensure **tight integration with CI/CD workflows** powered by Databricks Asset Bundles.  
+
+
+# 🚀 CI/CD Best Practices in Databricks
+
+Implementing a successful CI/CD pipeline for data engineering requires strong team alignment and robust processes to ensure continuous improvement and high-quality data products.  
+Follow these five core best practices:
+
+---
+
+## 1️⃣ Define a Clear Testing Strategy
+- Establish and automate **unit, integration, and end-to-end tests**.  
+- Use **pytest** for unit testing and **data quality expectations** for integration testing.  
+- Automating these tests ensures code correctness and data integrity *before* deployment, reducing risk of errors.  
+
+---
+
+## 2️⃣ Implement a Version Control Strategy
+- Use Git/GitHub to manage code, notebooks, and configuration files.  
+- Define a clear branching strategy (e.g., `dev`, `stage`, `main`).  
+- Enables collaboration, easier stage management, and conflict resolution.  
+
+---
+
+## 3️⃣ Establish a Code Review Process
+- Require **peer code reviews** before merging changes.  
+- Configure CI tools to trigger builds on pull requests.  
+- Validates changes early and catches issues before they reach production.  
+
+---
+
+## 4️⃣ Automate Deployment with Databricks Asset Bundles (DABs)
+- Use DABs for **consistent, repeatable, automated deployments**.  
+- Manage infrastructure-as-code to minimize human error.  
+- Guarantees correct code is deployed to the right isolated environment.  
+
+---
+
+## 5️⃣ Monitor and Optimize CI/CD Pipelines
+- Continuously monitor pipeline performance.  
+- Gather developer feedback and identify bottlenecks.  
+- Optimize workflows for speed, reliability, and scalability.  
+
+---
+
+## 🌟 Outcome
+By adopting these practices, you’ll create a streamlined, reliable, and scalable CI/CD process that accelerates development cycles and elevates the quality of your data-driven products.  
+
+# 🔗 GitHub Actions + Databricks Asset Bundles (DABs)
+
+Building on our earlier discussions about Databricks Asset Bundles (DABs) and CI/CD best practices, integrating **GitHub Actions** with DABs allows you to fully automate your deployment pipeline.  
+This is commonly achieved using **GitFlow**, a structured branching model that relies on isolated feature branches and multiple primary branches (like `dev` and `main`).  
+
+---
+
+## 1️⃣ Development and Feature Branches
+- Developers create **feature branches** off of the `dev` branch to build features or bug fixes in isolation.  
+- During local development, code can be deployed and tested directly in the **Development workspace** using the Databricks CLI or IDEs like VSCode.  
+
+---
+
+## 2️⃣ Pull Requests and Merging
+- Once work is complete, a **Pull Request (PR)** is opened.  
+- After peer review, the feature branch is merged into the `dev` (or `develop`) branch.  
+
+---
+
+## 3️⃣ Automated QA/Staging Deployment
+Merging into `dev` triggers a **GitHub Actions workflow** that:  
+- Deploys the bundle to the **QA (Staging) workspace** using DABs.  
+- Runs automated tests (`pytest` unit tests, code coverage checks, security scans).  
+- Drafts a **versioned release branch** and creates a PR to merge this release into `main`.  
+
+---
+
+## 4️⃣ Automated Production Deployment
+When the release PR is approved and merged into `main`, a second workflow is triggered:  
+- Deploys the finalized bundle into the **Production workspace**.  
+- Creates a **Release Tag** for version control.  
+- Merges `main` back into `dev` to keep branches synchronized.  
+
+---
+
+## ⚡ Handling Production Emergencies (Hotfixes)
+- For critical errors, a **hotfix branch** is created directly from `main`.  
+- Once fixed and reviewed, the hotfix is merged back into *both* `main` and `dev`.  
+- This stabilizes production immediately while ensuring ongoing development incorporates the fix.  
+
+---
+
+## 🔧 Native Git Integration in Databricks
+Databricks integrates natively with Git providers like **GitHub, GitLab, Bitbucket, and Azure DevOps**.  
+- Use the **Visual Git Client** in Databricks for a user-friendly interface.  
+- Orchestrate CI/CD workflows and manage repositories via the **Repos REST API**.  
+
+---
+
+## 🌟 Outcome
+By combining **GitHub Actions**, **GitFlow**, and **Databricks Asset Bundles**, teams achieve:  
+- Fully automated deployments across dev, staging, and production  
+- Strong version control and branching discipline  
+- Rapid response to production issues with hotfix workflows  
+- Seamless integration between Databricks and Git platforms  
+
+![alt text](deploymentPattern.png)
