@@ -888,3 +888,119 @@ By the end of this module, you will:
 5. **Monitor changes** using Delta’s built-in observability features.  
 
 ---
+
+# Capturing Changed Data
+
+## 🔄 Change Data Feed (CDF) vs Change Data Capture (CDC)
+
+In the Databricks environment, **Change Data Feed (CDF)** and **Change Data Capture (CDC)** differ primarily in their scope, implementation, and intended use cases.
+
+---
+
+## 📊 Feature Comparison
+
+| Feature              | Change Data Feed (CDF)                          | Change Data Capture (CDC)                          |
+| :------------------- | :---------------------------------------------- | :------------------------------------------------ |
+| **Scope**            | Specific to **Delta Lake tables**               | General concept applicable across **various systems** |
+| **Functionality**    | Tracks **row-level changes** (inserts, updates, deletes) within Delta tables | Captures data changes for **synchronization** across systems |
+| **Implementation**   | Enabled on Delta tables; uses **`_change_data` folder** and **`table_changes` function** | Implemented via **Spark Declarative Pipelines** and APIs like **`APPLY CHANGES`** |
+| **Efficiency**       | Processes **only changed rows** for downstream operations | Synchronizes **incremental changes** from source DBs to the Lakehouse |
+| **Primary Use Case** | Tracking **internal changes** within Databricks | Capturing **external source changes** into Databricks |
+
+---
+
+## ⚙️ Key Technical Distinctions
+- **CDF**  
+  - Manually enabled on a Delta table.  
+  - Tracks version history with high granularity.  
+  - Provides metadata such as:  
+    - `_change_type` (preimage, postimage, etc.)  
+    - `_commit_version`  
+    - `_commit_timestamp`  
+
+- **CDC**  
+  - Broader architectural pattern, typically used at the **Bronze layer**.  
+  - Ingests changes from external databases into Databricks.  
+  - Once data is in Bronze, **CDF** can propagate incremental changes downstream to **Silver** and **Gold** tables efficiently.  
+
+---
+
+## 🚀 Practical Workflow
+1. **CDC** brings external changes into the Lakehouse (Bronze).  
+2. **CDF** tracks and propagates those changes internally across Delta tables (Silver/Gold).  
+3. Together, they ensure **efficient, consistent, and auditable data pipelines**.  
+
+---
+
+# 🗑️ Deleting Data in Databricks for Regulatory Compliance
+
+Deleting data in Databricks requires specific strategies to ensure **regulatory compliance** with laws like GDPR and CCPA, particularly when handling Personally Identifiable Information (PII).
+
+---
+
+## ⚖️ Handling Deletion Requests
+Organizations typically follow these practices:
+- **Separate Pipelines:** Deletion operations are handled in pipelines **distinct from standard ETL pipelines**.  
+- **Propagation via Change Data Feed (CDF):** Use CDF to identify records that need deletion and **propagate those actions** downstream. This allows filtering out events (e.g., user deletions) into a dedicated privacy pipeline.  
+- **Partition Boundaries:** Perform deletions at partition boundaries for efficiency.  
+- **Commit Messages:** Delta Lake supports **arbitrary commit messages** in the transaction log, which can label deletions for later auditing.  
+
+---
+
+## 💾 Physical Deletion and Retention
+A critical detail: a `DELETE` operation in Delta Lake does **not immediately remove data** from physical storage due to table history and CDF.
+
+- **The Role of VACUUM:** Use the **`VACUUM` command** to physically delete PII from storage.  
+- **Retention Policies:**  
+  - By default, Delta prevents `VACUUM` with less than **7 days retention**.  
+  - To override for compliance:  
+    1. Disable Spark’s retention duration check (`retentionDurationCheck.enabled`).  
+    2. Run `VACUUM ... DRY RUN` to preview files.  
+    3. Execute `VACUUM ... RETAIN 0 HOURS` to remove files immediately.  
+
+---
+
+## 🔄 DML Support Across Table Types
+- **Streaming Tables:** Support standard DML (`DELETE`, `UPDATE`, `MERGE`).  
+  - *Example:*  
+    ```sql
+    DELETE FROM users 
+    WHERE updated < current_timestamp() - INTERVAL 3 years
+    ```
+    Ensures compliance with retention periods.  
+
+- **Materialized Views (MVs):** Do **not support direct DML** like `DELETE`.  
+  - Instead, changes in underlying data are reflected via **refresh mechanisms** (manual or pipeline‑driven).  
+
+---
+
+# Demo: Processing Records from CDF and Propagating Changes
+
+In this demo, we’ll showcase how to manage **data streaming** and **change data capture (CDC)** in a data lake environment.  
+We’ll cover the process of ingesting user data into **bronze, silver, and gold tables**, handling user data deletion requests, and ensuring **data consistency and integrity** across different stages of data processing.
+
+---
+
+## 🎯 Key Takeaways
+
+This demo illustrated how to manage streaming data and ensure compliance in a multi-tiered data architecture. Here are the key takeaways:
+
+- **Structured Ingestion:** Data is ingested through **bronze → silver → gold** stages to enable scalable and organized processing.  
+- **Change Data Feed (CDF):** Enables efficient tracking of **updates and deletions** across these stages.  
+- **Deletion Handling:** User deletion requests must be **propagated across all pipeline layers** to ensure compliance.  
+
+---
+
+## ⚙️ Bronze → Silver → Gold Workflow
+- **Bronze Layer:** Raw ingestion of streaming data from external sources.  
+- **Silver Layer:** Cleansed and enriched data, applying transformations and deduplication.  
+- **Gold Layer:** Curated, business-ready datasets for analytics and reporting.  
+
+---
+
+## 🛡️ Compliance Considerations
+- **CDF ensures consistency** by tracking changes across all layers.  
+- **Deletion requests** are handled by propagating changes downstream, ensuring regulatory compliance (GDPR, CCPA).  
+- **Auditability:** Delta Lake’s transaction logs provide transparency and traceability for all operations.  
+
+---
