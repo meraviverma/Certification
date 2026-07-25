@@ -764,3 +764,127 @@ This is often used in **Business Intelligence**, where analysts need trends and 
 - **Pseudonymization** → Record-level, reversible, useful for operational analytics.  
 - **Anonymization** → Dataset-level, irreversible, useful for BI and compliance.  
 - Both techniques **reduce risk but don’t eliminate it** — strong governance and layered security are essential.
+
+# Securing PII: Pseudonymization vs Anonymization
+
+Drawing on the provided source, here are examples for each method of pseudonymization and anonymization used to secure Personally Identifiable Information (PII).
+
+---
+
+## 🔒 Pseudonymization Examples
+Pseudonymization protects data at the **record level** and is **reversible**, allowing authorized users to re-identify data subjects if they have access to the necessary keys or lookup tables.
+
+- **Hashing:** Applying a function like SHA to PII results in a random string of characters.  
+  - *Example:* A Social Security Number (SSN) such as **"000-11-1111"** is converted into a hash string like **"1ffa0bf4002a968e7d8"**.  
+  - To increase security, a random string called a **salt** can be added before hashing to prevent reversal.
+
+- **Tokenization:** PII is converted into keys, and the original values are stored in a **secure lookup table** (token vault).  
+  - *Example:* In a user table, the name **"John Doe"** is replaced with a pseudonym like **"User-321"**. Analysts work with the "User-321" key, while the actual name is kept in the vault.
+
+---
+
+## 🛡️ Anonymization Examples
+Anonymization protects **entire datasets** by **irreversibly altering** personal data so a subject can no longer be identified.
+
+- **Data Suppression:** Excluding specific PII or removing rows that might lead to re-identification.  
+  - *Column Exclusion:* A source table with **ID, SSN, Salary** is presented as a view containing only **ID and Salary**, removing SSN.  
+  - *Row Removal:* Filtering out rows where demographic groups are too small, e.g., removing a record for a customer who is the **only person** in a specific small city.
+
+- **Generalization:** Removing specificity from data to retain insights without revealing identities.  
+  - *Categorical Generalization:* Grouping cities like **"Amsterdam"** and **"Haarlem"** into **"The Netherlands"** or **"Europe"**.  
+  - *Binning:* Instead of exact birthdate **"28/09/1997"**, group into a 10-year **Age Range** of **"20-30"**.  
+  - *Truncating IP Addresses:* Replace the last byte of an IP address with zero. Example: **"10.130.176.215" → "10.130.176.0/24"**.  
+  - *Rounding:* Adjust numerical precision. Example: Salary **"1245.4" → "1200"** (nearest hundred).
+
+---
+
+# Summary And Best Practices
+
+# Best Practices for Handling Personally Identifiable Information (PII)
+
+---
+
+## 🧭 Data Reduction and Protection Hierarchy
+- **Avoid PII Whenever Possible:** The safest option is to not collect or store PII at all.  
+- **Prioritize Anonymization:** When PII is unavoidable, follow the hierarchy:  
+  **Anonymization > Pseudonymization > Cleartext**  
+  - *Anonymization* irreversibly removes identifiers.  
+  - *Pseudonymization* is reversible and should only be used when re-identification is necessary (e.g., medical tracking).  
+  - *Cleartext* storage should be a last resort.
+
+---
+
+## 👀 Vigilance and Risk Assessment
+- **Maintain a "Healthy Paranoia":** Always question whether protections are sufficient.  
+- **Apply the "Three Facts Rule":** Be aware that combining just three data points can uniquely identify someone.  
+- **Consider Dataset Linkage:** Evaluate risks of re-identification when datasets are combined.  
+- **Conduct PIIR/PIAR Reviews:** Regular **Privacy Impact Assessment Reviews** help assess varying risk levels across different PII types.
+
+---
+
+## 🏗️ Environment and Team Management
+- **Isolate PII Environments:** Keep PII processing separate to simplify compliance and add security.  
+- **Isolate Protection Processes:** Perform anonymization/pseudonymization in dedicated environments.  
+- **Ensure Proper Training:** Teams must be trained on privacy laws (GDPR, CCPA) to handle sensitive data correctly.
+
+---
+
+## 📊 Summary of Common Protection Techniques
+
+| Technique              | Security/Protection Level | Key Advantage                                | Key Disadvantage                                      |
+| :--------------------- | :------------------------ | :------------------------------------------- | :--------------------------------------------------- |
+| **Data Masking**       | Low to Moderate           | Preserves data format                        | Data may be recoverable from related columns         |
+| **Pseudonymization**   | Low to Moderate           | Allows linking multiple datasets             | Requires secure storage of linkage to original values |
+| **Hashing**            | Moderate to High          | Irreversible and secure                      | Possible to infer values from hash distribution      |
+| **Column Encryption**  | High                      | Obscures both values and distributions       | Requires complex key management                      |
+| **Tokenization**       | High                      | Tokens can replace real data for operations  | Requires robust, compromise-proof tokenization system|
+
+---
+
+# Demo: PII Data Security
+
+To make your demo notes more actionable, here’s a structured step‑by‑step guide showing how to build and verify a Delta Live Tables (DLT) pipeline that applies anonymization and pseudonymization techniques to PII data.  
+
+---
+
+✅ **Key Takeaways from the Demo**  
+- Delta Live Tables (DLT) automates applying data protection techniques to PII within ETL pipelines.  
+- Techniques like **hashing, tokenization, and generalization** protect sensitive data while supporting analytics.  
+- Built‑in **observability features** in DLT simplify monitoring, validation, and troubleshooting of data protection workflows.  
+
+# 📊 Streaming Data and CDF
+
+In this demo, we’ll showcase how to enable **Change Data Feed (CDF)**, explain how it works, and why it’s useful for streaming data.  
+We’ll explore strategies for managing updates and deletions effectively with CDF and provide a demonstration that brings these concepts to life.
+
+---
+
+## 🎯 Learning Objectives
+
+By the end of this module, you will:
+
+- **Understand how to enable CDF** and how it functions.  
+- **Recognize the benefits** of using CDF to ingest data in streaming pipelines.  
+- **Explore strategies** for generating CDF output from streaming data sources.  
+- **Learn how to use CDF** to remove data in downstream tables.  
+- **Discover ways to track and record** significant data changes over time.  
+- **See how CDF ensures deletions** are consistently and fully committed across systems.  
+
+---
+
+## ⚙️ Why CDF Matters
+- Provides **incremental change tracking** for Delta tables.  
+- Simplifies **streaming ingestion** by capturing inserts, updates, and deletes.  
+- Ensures **data consistency** across downstream systems.  
+- Enables **auditing and compliance** by recording historical changes.  
+
+---
+
+## 🚀 Demo Flow
+1. **Enable CDF** on a Delta table (`TBLPROPERTIES (delta.enableChangeDataFeed = true)`).  
+2. **Ingest streaming data** and generate CDF output.  
+3. **Apply anonymization/pseudonymization techniques** (hashing, tokenization, generalization) to secure PII.  
+4. **Verify deletions and updates** are properly reflected in downstream tables.  
+5. **Monitor changes** using Delta’s built-in observability features.  
+
+---
