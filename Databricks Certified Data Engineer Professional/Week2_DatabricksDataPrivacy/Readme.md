@@ -468,3 +468,299 @@ WHERE source_table_name = "login_data_silver";
 📊 *Purpose*: Track which user queries or entities are reading from `login_data_silver`.
 
 ---
+
+# 🔒 Data Isolation in Databricks Unity Catalog
+
+In **Databricks Unity Catalog**, data isolation is managed through a hierarchical structure that allows organizations to physically and logically separate their data assets based on **regional, organizational, or environmental needs**.
+
+---
+
+## 📂 The Primary Unit: Catalogs
+While the **metastore** is the top-level container, **data isolation should begin at the catalog level**.
+
+- **Organizational Mirroring:** Catalogs often reflect organizational units or SDLC scopes (e.g., `Development` vs. `Production`).
+- **Separation of Storage:** Catalogs can be stored separately from the parent metastore for stronger isolation.
+- **Workspace Binding:** Catalogs can be bound to specific workspaces, ensuring sensitive data is processed only in designated environments.
+- **Inherited Permissions:** Ideal for setting inherited permissions, enabling efficient and granular access control across schemas and tables.
+
+---
+
+## 🌍 Regional Isolation: Metastores
+Metastores provide a higher level of **regional isolation**.
+
+- **One per Region:** Account admins create one metastore per region, assigned to multiple workspaces in that region.
+- **Physical Separation:** Each metastore’s storage is physically separated by default.
+- **Not the Main Unit:** Metastores define regional boundaries, but **catalogs** are the primary unit for isolating data between teams/projects.
+
+---
+
+## 🗄️ Storage-Level Isolation
+Unity Catalog supports physical separation of data via **storage configuration**.
+
+- **Flexible Configuration:** Storage can be defined at the metastore, catalog, or schema level.
+- **External Locations:** Bind external storage locations to specific workspaces for enhanced isolation and auditability.
+- **Access Best Practices:** Prevent direct user access to cloud storage containers to avoid bypassing Unity Catalog’s access controls.
+
+---
+
+## ⚙️ Workload & Workspace Isolation
+Isolation can also be enforced at the **compute and environment level**.
+
+- **Single-User Clusters:** Provide isolation for individual users (often used for POCs).
+- **Multi-User Clusters & SQL Warehouses:** Safely support users with different privilege levels via shared access modes.
+- **Multiple Workspaces:** Isolate groups of users who are not intended to collaborate.
+
+---
+
+## 🛡️ Governance Models
+Isolation strategies depend on the chosen governance model:
+
+- **Centralized Governance:** A central admin group owns the metastore and manages permissions across all objects.
+- **Distributed Governance:** Catalogs act as **data domains**. Domain owners manage governance independently from other domains.
+
+---
+
+✅ **Key Takeaway:**  
+Use **catalogs as the primary isolation unit**, metastores for **regional boundaries**, and storage/workspace configurations for **physical and workload separation**. Align governance (centralized vs. distributed) with organizational maturity and domain ownership.
+
+## **Matastore**
+In Databricks Unity Catalog, a **metastore** is the **top-level container for metadata** and the foundation of the data hierarchy. It is used to manage data assets—such as tables, views, and volumes—and the permissions that govern access to them.
+
+Key characteristics of a metastore include:
+
+*   **Hierarchical Organization:** It organizes data objects using a **three-level namespace** (catalog > schema > table/view/volume).
+*   **Regional Management:** Account administrators create **one metastore per region**, which can then be assigned to multiple workspaces within that same region.
+*   **Regional Isolation:** Metastores provide regional isolation by default, as the physical storage for each metastore is typically separated from others within the same account.
+*   **Data Isolation Limitations:** While they offer regional boundaries, metastores are **not intended to be the primary units of data isolation**; instead, data isolation should begin at the **catalog level**.
+*   **Governance and Storage:**
+    *   In a **centralized governance model**, metastore owners manage permissions across all objects.
+    *   For **managed tables**, the cloud storage is directly associated with the metastore.
+    *   It is a best practice to set a **group** as the metastore administrator.
+*   **Migration from Legacy Systems:** Databricks recommends migrating away from legacy **Hive metastores**, as they are considered less secure than the governance provided by Unity Catalog.
+
+## 📂 Catalog: Primary Unit of Data Isolation
+
+In **Databricks Unity Catalog**, a **catalog** is the first level of the three-level namespace  
+(**catalog → schema → table/view/volume**) used to organize data assets.  
+It is specifically **intended as the primary unit of data isolation** within an organization.
+
+---
+
+## 🔑 Key Functions and Characteristics
+
+- **Organizational & SDLC Mirroring**  
+  Catalogs often mirror organizational units or software development lifecycle stages,  
+  such as separate catalogs for **Production** and **Development** data.
+
+- **Data Isolation**  
+  Catalogs can be **bound to specific workspaces**, ensuring sensitive data is processed only in designated environments.
+
+- **Storage Management**  
+  Best practice is to **store catalogs separately** from the parent metastore for stronger physical separation.  
+  Storage locations can be configured directly at the catalog level to meet cloud bucket/account requirements.
+
+- **Inherited Permissions**  
+  Catalogs are the **ideal location to set inherited permissions**, enabling efficient and granular access control  
+  across all schemas and tables within that catalog.
+
+---
+
+## 🛡️ Governance Models
+
+- **Distributed Governance**  
+  A catalog (or set of catalogs) serves as a **data domain**.  
+  The owner of that domain can create and manage assets independently from other domains.
+
+- **Ownership Best Practice**  
+  Databricks recommends assigning **a group** as the catalog owner rather than an individual user,  
+  ensuring maintainable and scalable governance.
+
+---
+
+✅ **Key Takeaway:**  
+Catalogs are the **foundation of data isolation** in Unity Catalog, balancing logical organization,  
+physical separation, and governance flexibility.
+
+## 📦 Unity Catalog: Volumes for Non-Tabular Data
+
+In **Databricks Unity Catalog**, a **volume** is a securable object used to manage and govern **non-tabular data**.  
+It resides within the three-level namespace: **catalog → schema → volume**, alongside tables and views.
+
+---
+
+## 🔑 Key Aspects of Volumes
+
+- **Supported Data Types**  
+  Volumes can store **structured, semi-structured, and unstructured** formats.
+
+- **Common Use Cases**  
+  Ideal for storing files that are not suitable for tables, such as:  
+  - Libraries  
+  - Configuration files  
+  - Checkpoint folders  
+
+- **Relationship to Tables**  
+  Data stored in volumes **cannot be registered as tables** or handled using table-based operations.  
+  Instead, volumes provide a governance layer for non-tabular datasets, complementing table governance.
+
+---
+
+## 🗂️ Types of Volumes
+
+- **Managed Volumes**  
+  Stored in locations directly managed by Unity Catalog.
+
+- **External Volumes**  
+  Registered against directories located in **external locations** (cloud storage paths + storage credentials).
+
+---
+
+## ⚙️ Best Practice
+
+- Databricks recommends **avoiding DBFS** (Databricks File System) in Unity Catalog-enabled workspaces.  
+- Use **volumes** instead for storing all unstructured data to ensure proper governance and security.
+
+---
+
+✅ **Key Takeaway:**  
+Volumes extend Unity Catalog’s governance to **non-tabular data**, ensuring consistent security and management across all data types.
+
+## 🗄️ Physical Data Separation in Unity Catalog
+
+In **Databricks Unity Catalog**, physically separating data involves configuring specific storage locations  
+at different levels of the hierarchy to ensure that certain datasets are stored within designated cloud accounts or buckets.
+
+---
+
+## 🔑 Key Methods & Best Practices
+
+- **Catalog-Level Storage**  
+  - Preferred method for isolation: **store catalogs separately** from the parent metastore.  
+  - Enables separation by organizational units or SDLC stages (e.g., `Production` vs. `Development`).
+
+- **External Locations & Credentials**  
+  - Managed through **external locations** (cloud storage path + storage credential).  
+  - Unity Catalog reads/writes data on behalf of users, ensuring strong control and auditability.
+
+- **Workspace Binding**  
+  - Bind external locations and credentials to specific **workspaces**.  
+  - Ensures sensitive data is only accessible and processed in authorized environments.
+
+- **Hierarchical Configuration**  
+  - Storage can be configured at the **metastore, catalog, or schema level**.  
+  - Allows granular control, e.g., isolating data within a specific schema from other schemas in the same catalog.
+
+- **Cloud-Level Permissions**  
+  - Beyond Databricks ACLs, sensitive data (like PII) should be stored in containers with **restricted cloud-level access**.  
+  - Limit direct user access to cloud storage to prevent bypassing Unity Catalog governance.
+
+- **Managed vs. External Volumes**  
+  - **Managed Volumes:** Stored in Unity Catalog-managed locations.  
+  - **External Volumes:** Registered against external directories (cloud paths + credentials).  
+  - Recommended for non-tabular data to ensure proper governance.
+
+---
+
+✅ **Key Takeaway:**  
+Physical separation in Unity Catalog is achieved through **catalog-level storage, external locations, workspace binding, and cloud-level permissions**.  
+This layered approach ensures sensitive data remains isolated, governed, and secure across organizational boundaries.
+
+
+# 🔐 Demo: Securing Data with Unity Catalog
+
+In this demo, we provided a comprehensive walkthrough of securing data using **Unity Catalog**,  
+covering foundational features such as:
+
+- Namespace management  
+- Privilege settings  
+- Dynamic views  
+- Row filtering  
+- Column masking  
+- Tagging & discoverability  
+- Lineage tracking  
+- AI-generated documentation  
+
+You learned how to set up and manage data assets, control access, and protect sensitive information effectively.
+
+---
+
+## 📌 Key Takeaways
+
+- **Namespace Management & Access Controls**  
+  Unity Catalog enables secure organization of data assets through effective namespace management and granular access controls.
+
+- **Granular Privilege Settings**  
+  Features like dynamic views, row filtering, and column masking provide fine-grained control over data access.
+
+- **Enhanced Data Management**  
+  Tagging and discoverability make assets easier to locate, categorize, and manage across teams.
+
+- **Transparency & Compliance**  
+  Lineage tracking ensures visibility into data flow, supports integrity, and provides an audit trail for compliance.
+
+- **AI-Generated Documentation**  
+  Simplifies asset management, promotes collaboration, and improves understanding across teams.
+
+---
+
+✅ **Conclusion:**  
+Unity Catalog provides a **holistic governance framework** that secures both tabular and non-tabular data,  
+ensuring compliance, transparency, and collaboration across the organization.
+
+# PII Data Security
+
+## 🔑 Overview
+This module introduces **pseudonymization** and **anonymization** techniques, focusing on their implementation in automated ETL (Extract, Transform, Load) processes. It also covers **best practices for handling PII (Personally Identifiable Information)** and reviews common **data protection methods**, highlighting their applications and benefits in safeguarding sensitive information.
+
+---
+
+## 🎯 Learning Objectives
+By the end of this module, you will be able to:
+
+- **Understand and implement pseudonymization and anonymization** in automated ETL workflows.  
+- **Apply best practices for handling PII data** to ensure privacy and regulatory compliance.  
+- **Explore common data protection techniques** (e.g., encryption, masking, tokenization) and evaluate their applications in real-world scenarios.  
+
+# Pseudonymization & Anonymization
+
+# 🔐 Securing Personally Identifiable Information (PII)
+
+To secure PII at the **data modeling level**, organizations typically use two primary approaches: **pseudonymization** and **anonymization**.  
+While these techniques reduce visibility and the risk of data exfiltration, they do not eliminate risk entirely, as **re-identification is often possible** with sufficient time and access to additional data.
+
+---
+
+## 1️⃣ Pseudonymization
+Pseudonymization replaces PII with artificial identifiers (tokens or hashes) to protect data at the **record level**.  
+⚠️ Under regulations like **GDPR**, pseudonymized data is **still considered personal data**.
+
+**Key Characteristic:**  
+- ✅ **Reversible** process — authorized users can re-identify data using keys or lookup tables.
+
+**Methods:**
+- 🔒 **Hashing:** Apply a function (e.g., SHA) to convert PII into a random string.  
+  - Add a **salt** (random string) before hashing to prevent reversal of deterministic hashes.  
+  - Use **Databricks Secrets** to securely store salt values.
+- 🗝️ **Tokenization:** Convert PII into keys and store original values in a **secure lookup table (token vault)**.  
+  - End-user tables contain only tokens, which are smaller and faster to read.
+
+---
+
+## 2️⃣ Anonymization
+Anonymization protects **entire datasets** by **irreversibly altering** personal data so subjects cannot be identified directly or indirectly.  
+This is often used in **Business Intelligence**, where analysts need trends and aggregations rather than individual records.
+
+**Methods:**
+- 🚫 **Data Suppression:** Exclude specific PII columns or remove rows where demographic groups are too small (risk of identification).  
+- 🌍 **Generalization:** Remove specificity to provide insights without revealing identities.  
+  - **Categorical Generalization:** Replace city names with regions or countries.  
+  - **Binning:** Group values into ranges (e.g., 10-year age bands, salary brackets).  
+  - **Truncating IP Addresses:** Round to `/24 CIDR` (replace last byte with zero) to generalize location.  
+  - **Rounding:** Round numerical data (e.g., nearest 5 or 100) to suppress outliers.
+
+---
+
+## ✅ Summary
+- **Pseudonymization** → Record-level, reversible, useful for operational analytics.  
+- **Anonymization** → Dataset-level, irreversible, useful for BI and compliance.  
+- Both techniques **reduce risk but don’t eliminate it** — strong governance and layered security are essential.
