@@ -681,3 +681,4 @@ def invalid_trips_data():
   return spark.read.table("trips_data_quarantine").filter("is_quarantined=true")
 
 ```
+
